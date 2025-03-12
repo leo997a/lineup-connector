@@ -25,15 +25,19 @@ const PlayerPosition: React.FC<PlayerPositionProps> = ({ player, x, y, delay = 0
             alt={player.name} 
             className="player-image"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/400?text=No+Image';
+              console.log(`Failed to load image for player: ${player.name}`);
+              (e.target as HTMLImageElement).src = 'https://fcbarcelona-static-files.s3.amazonaws.com/fcbarcelona/photo/2018/09/21/3c5f4799-13f0-4be9-8850-df60a2a7d1a4/01-LogoFCB-Vertical.jpg';
             }}
           />
         ) : (
           <div className="player-jersey">
-            {player.number}
+            {player.number || "#"}
           </div>
         )}
-        <div className="player-name">{player.name}</div>
+        <div className="player-name">
+          {player.name}
+          {player.number && <span className="player-number">#{player.number}</span>}
+        </div>
       </div>
     </div>
   );

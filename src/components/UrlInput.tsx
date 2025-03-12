@@ -32,11 +32,11 @@ const UrlInput: React.FC<UrlInputProps> = ({ onFetchFromUrl }) => {
       return;
     }
     
-    // التحقق من صحة الرابط
+    // تحقق بسيط أن الرابط يتعلق بـ FotMob أو أنه رابط خاص
     if (!url.includes("fotmob.com") && !url.includes("special")) {
       toast({
         title: "رابط غير صالح",
-        description: "يرجى إدخال رابط مباراة FotMob صالح",
+        description: "يرجى إدخال رابط مباراة FotMob صالح أو معرف المباراة",
         variant: "destructive",
       });
       return;
@@ -44,6 +44,11 @@ const UrlInput: React.FC<UrlInputProps> = ({ onFetchFromUrl }) => {
     
     onFetchFromUrl(url);
   };
+  
+  const placeholderExamples = [
+    "https://www.fotmob.com/matches/...",
+    "4737555 (معرف المباراة فقط)"
+  ];
   
   return (
     <form onSubmit={handleSubmit} className="flex items-center w-full space-x-2 animate-slide-down" style={{ animationDelay: '0.2s' }}>
@@ -54,6 +59,7 @@ const UrlInput: React.FC<UrlInputProps> = ({ onFetchFromUrl }) => {
         onChange={(e) => setUrl(e.target.value)}
         className="bg-white bg-opacity-90 backdrop-blur-sm hover:bg-opacity-100 transition-all duration-200"
         dir="rtl"
+        title={`مثال: ${placeholderExamples.join(' أو ')}`}
       />
       <Button type="submit" className="bg-barcelona-primary hover:bg-barcelona-primary/90 transition-all duration-200">
         <Search className="w-4 h-4 ml-2" />
