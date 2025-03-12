@@ -36,42 +36,32 @@ const extractMatchIdFromUrl = (url: string): string => {
     return url;
   }
   
-  // تحقق من وجود معرف مباراة في نهاية الرابط (بعد # أو :)
-  if (url.includes("#") || url.includes(":")) {
-    // استخراج بواسطة #
-    if (url.includes("#")) {
-      const parts = url.split("#");
-      if (parts.length > 1) {
-        const idPart = parts[1].split(":")[0];
-        if (idPart && idPart.match(/^\d+$/)) {
-          return idPart;
+  // استخراج معرف المباراة من نهاية الرابط (يحتوي على أرقام)
+  // التحقق من رابط FotMob الكامل مثل https://www.fotmob.com/matches/barcelona-vs-benfica/2sv14h#4737555:tab=lineup
+  
+  // محاولة استخراج الرقم بعد # وقبل :
+  if (url.includes("#")) {
+    const afterHash = url.split("#")[1];
+    if (afterHash) {
+      if (afterHash.includes(":")) {
+        const matchId = afterHash.split(":")[0];
+        if (matchId && matchId.match(/^\d+$/)) {
+          return matchId;
         }
-      }
-    }
-    
-    // استخراج بواسطة :
-    if (url.includes(":")) {
-      const parts = url.split(":");
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i];
-        if (part && part.match(/^\d+$/)) {
-          return part;
-        }
+      } else if (afterHash.match(/^\d+$/)) {
+        return afterHash;
       }
     }
   }
   
-  // إذا وجدنا رقماً في الرابط، قد يكون معرف المباراة
-  const matches = url.match(/\d+/g);
+  // محاولة استخراج أي رقم طويل (معرف المباراة عادةً أطول من 5 أرقام)
+  const matches = url.match(/\d{5,}/g);
   if (matches && matches.length > 0) {
-    for (const match of matches) {
-      if (match.length >= 5) { // معرفات المباريات عادة أطول من 5 أرقام
-        return match;
-      }
-    }
+    return matches[0];
   }
   
   // إذا لم نتمكن من استخراج معرف، نعيد الرابط كما هو
+  console.log("لم نتمكن من استخراج معرف المباراة من الرابط:", url);
   return url;
 };
 
@@ -86,106 +76,104 @@ export const fetchLineupFromUrl = async (url: string, formationName: string = "4
   // محاكاة تأخير API
   await new Promise(resolve => setTimeout(resolve, 1200));
   
-  // في التطبيق الحقيقي، هنا سنقوم بالاتصال بـ API FotMob أو استخدام تقنية web scraping
-  // للحصول على التشكيلة الفعلية بناءً على معرف المباراة
-  
   // تحديد التشكيل المطلوب
-  // نحاول استخراج التشكيل من البيانات المجلوبة (في تطبيق حقيقي)
-  // لكن هنا سنستخدم التشكيل المقدم من المستخدم كافتراضي
   const formation = formations.find(f => f.name === formationName) || formations[0];
   
   // محاكاة تشكيلة من FotMob بناءً على معرف المباراة
-  // في تطبيق حقيقي، هذه البيانات ستأتي من API أو استخراج البيانات من الموقع
-  let selectedGoalkeeper: Player | undefined;
-  let selectedDefenders: Player[] = [];
-  let selectedMidfielders: Player[] = [];
-  let selectedForwards: Player[] = [];
+  let lineup: LineupData;
   
   // نموذج محاكاة لتشكيلة مباراة برشلونة ضد بنفيكا (المعرف 4737555)
   if (matchId === "4737555") {
-    // حارس المرمى - تير شتيغن
-    selectedGoalkeeper = barcelona.players.find(p => p.name.includes("Ter Stegen"));
+    // استخدام التشكيل 4-3-3 لهذه المباراة المحددة
+    const matchFormation = formations.find(f => f.name === "4-3-3") || formation;
     
-    // الدفاع - كوندي، أراوخو، إنيغو، بالدي
-    const defenderNames = ["Koundé", "Araújo", "Martínez", "Balde"];
-    selectedDefenders = barcelona.players.filter(p => p.position === "DF" && defenderNames.some(name => p.name.includes(name)));
+    // البحث عن اللاعبين بالاسم
+    const findPlayerByName = (namePattern: string): Player | undefined => {
+      return barcelona.players.find(player => 
+        player.name.toLowerCase().includes(namePattern.toLowerCase())
+      );
+    };
     
-    // الوسط - دي يونغ، بيدري، غوندوغان
-    const midfielderNames = ["De Jong", "Pedri", "Gündoğan"];
-    selectedMidfielders = barcelona.players.filter(p => p.position === "MF" && midfielderNames.some(name => p.name.includes(name)));
+    // تحديد التشكيلة الأساسية الفعلية لمباراة برشلونة ضد بنفيكا
+    lineup = {
+      formation: matchFormation,
+      goalkeeper: [findPlayerByName("ter stegen") || barcelona.players.find(p => p.position === "GK")!],
+      defense: [
+        findPlayerByName("koundé") || findPlayerByName("kounde") || barcelona.players.find(p => p.id === "kounde")!,
+        findPlayerByName("araújo") || findPlayerByName("araujo") || barcelona.players.find(p => p.id === "araujo")!,
+        findPlayerByName("martínez") || findPlayerByName("martinez") || barcelona.players.find(p => p.id === "inigo")!,
+        findPlayerByName("balde") || barcelona.players.find(p => p.id === "balde")!
+      ],
+      midfield: [
+        findPlayerByName("de jong") || barcelona.players.find(p => p.id === "de-jong")!,
+        findPlayerByName("pedri") || barcelona.players.find(p => p.id === "pedri")!,
+        findPlayerByName("olmo") || barcelona.players.find(p => p.id === "olmo")!
+      ],
+      attack: [
+        findPlayerByName("yamal") || barcelona.players.find(p => p.id === "yamal")!,
+        findPlayerByName("lewandowski") || barcelona.players.find(p => p.id === "lewandowski")!,
+        findPlayerByName("raphinha") || barcelona.players.find(p => p.id === "raphinha")!
+      ]
+    };
     
-    // الهجوم - يامال، ليفاندوفسكي، رافينيا
-    const forwardNames = ["Yamal", "Lewandowski", "Raphinha"];
-    selectedForwards = barcelona.players.filter(p => p.position === "FW" && forwardNames.some(name => p.name.includes(name)));
+    // التأكد من أن جميع المصفوفات تحتوي على لاعبين
+    // إذا كان هناك قيم undefined، استبدلها بلاعبين من موقع مناسب
+    lineup.goalkeeper = lineup.goalkeeper.filter(p => p !== undefined);
+    lineup.defense = lineup.defense.filter(p => p !== undefined);
+    lineup.midfield = lineup.midfield.filter(p => p !== undefined);
+    lineup.attack = lineup.attack.filter(p => p !== undefined);
+    
+    // إكمال أي مراكز مفقودة
+    if (lineup.goalkeeper.length === 0) {
+      lineup.goalkeeper = [barcelona.players.find(p => p.position === "GK")!];
+    }
+    
+    // إكمال الدفاع إذا كان ناقصًا
+    while (lineup.defense.length < matchFormation.lines[0]) {
+      const missingDefenders = barcelona.players
+        .filter(p => p.position === "DF" && !lineup.defense.some(d => d.id === p.id))
+        .slice(0, matchFormation.lines[0] - lineup.defense.length);
+      
+      lineup.defense = [...lineup.defense, ...missingDefenders];
+    }
+    
+    // إكمال الوسط إذا كان ناقصًا
+    const midfieldCount = matchFormation.lines.length > 1 
+      ? matchFormation.lines.reduce((sum, count, index) => index > 0 && index < matchFormation.lines.length - 1 ? sum + count : sum, 0) 
+      : 0;
+    
+    while (lineup.midfield.length < midfieldCount) {
+      const missingMidfielders = barcelona.players
+        .filter(p => p.position === "MF" && !lineup.midfield.some(m => m.id === p.id))
+        .slice(0, midfieldCount - lineup.midfield.length);
+      
+      lineup.midfield = [...lineup.midfield, ...missingMidfielders];
+    }
+    
+    // إكمال الهجوم إذا كان ناقصًا
+    while (lineup.attack.length < matchFormation.lines[matchFormation.lines.length - 1]) {
+      const missingForwards = barcelona.players
+        .filter(p => p.position === "FW" && !lineup.attack.some(a => a.id === p.id))
+        .slice(0, matchFormation.lines[matchFormation.lines.length - 1] - lineup.attack.length);
+      
+      lineup.attack = [...lineup.attack, ...missingForwards];
+    }
   } else {
-    // في حالة عدم مطابقة المعرف لمباراة معروفة، نستخدم تشكيلة افتراضية
+    // في حالة عدم وجود معرف مباراة محدد، استخدم تشكيلة افتراضية
     // تصفية اللاعبين حسب المركز
     const goalkeepers = barcelona.players.filter(player => player.position === "GK");
     const defenders = barcelona.players.filter(player => player.position === "DF");
     const midfielders = barcelona.players.filter(player => player.position === "MF");
     const forwards = barcelona.players.filter(player => player.position === "FW");
     
-    selectedGoalkeeper = goalkeepers[0];
-    selectedDefenders = defenders.slice(0, formation.lines[0]);
-    
-    const midfieldCount = formation.lines.length > 1 
-      ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) 
-      : 0;
-    selectedMidfielders = midfielders.slice(0, midfieldCount);
-    
-    selectedForwards = forwards.slice(0, formation.lines[formation.lines.length - 1]);
+    lineup = {
+      formation,
+      goalkeeper: [goalkeepers[0]],
+      defense: defenders.slice(0, formation.lines[0]),
+      midfield: midfielders.slice(0, formation.lines.length > 1 ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) : 0),
+      attack: forwards.slice(0, formation.lines[formation.lines.length - 1])
+    };
   }
-  
-  // تحقق وإكمال اللاعبين الناقصين (في حالة لم يتم العثور على بعض اللاعبين)
-  // تصفية اللاعبين حسب المركز كاحتياطي
-  const goalkeepers = barcelona.players.filter(player => player.position === "GK");
-  const defenders = barcelona.players.filter(player => player.position === "DF");
-  const midfielders = barcelona.players.filter(player => player.position === "MF");
-  const forwards = barcelona.players.filter(player => player.position === "FW");
-  
-  // إذا لم يتم العثور على حارس المرمى
-  if (!selectedGoalkeeper) {
-    selectedGoalkeeper = goalkeepers[0];
-  }
-  
-  // إكمال اللاعبين الناقصين في الدفاع
-  while (selectedDefenders.length < formation.lines[0]) {
-    const missingCount = formation.lines[0] - selectedDefenders.length;
-    const additionalDefenders = defenders
-      .filter(d => !selectedDefenders.some(sd => sd.id === d.id))
-      .slice(0, missingCount);
-    selectedDefenders = [...selectedDefenders, ...additionalDefenders];
-  }
-  
-  // إكمال اللاعبين الناقصين في الوسط
-  const midfieldCount = formation.lines.length > 1 
-    ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) 
-    : 0;
-  while (selectedMidfielders.length < midfieldCount) {
-    const missingCount = midfieldCount - selectedMidfielders.length;
-    const additionalMidfielders = midfielders
-      .filter(m => !selectedMidfielders.some(sm => sm.id === m.id))
-      .slice(0, missingCount);
-    selectedMidfielders = [...selectedMidfielders, ...additionalMidfielders];
-  }
-  
-  // إكمال اللاعبين الناقصين في الهجوم
-  while (selectedForwards.length < formation.lines[formation.lines.length - 1]) {
-    const missingCount = formation.lines[formation.lines.length - 1] - selectedForwards.length;
-    const additionalForwards = forwards
-      .filter(f => !selectedForwards.some(sf => sf.id === f.id))
-      .slice(0, missingCount);
-    selectedForwards = [...selectedForwards, ...additionalForwards];
-  }
-  
-  // إنشاء كائن التشكيلة النهائي
-  const lineup: LineupData = {
-    formation,
-    goalkeeper: [selectedGoalkeeper],
-    defense: selectedDefenders.slice(0, formation.lines[0]),
-    midfield: selectedMidfielders.slice(0, midfieldCount),
-    attack: selectedForwards.slice(0, formation.lines[formation.lines.length - 1])
-  };
   
   return lineup;
 };
