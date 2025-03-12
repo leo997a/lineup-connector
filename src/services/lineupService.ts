@@ -3,21 +3,21 @@ import { barcelona } from "../data/barcelona";
 import { formations } from "../data/formations";
 import { Formation, LineupData, Player } from "../types/players";
 
-// This function simulates fetching data from an API
+// هذه الدالة تمثل جلب البيانات من API (محاكاة)
 export const fetchLineup = async (formationName: string = "4-3-3"): Promise<LineupData> => {
-  // Simulate API delay
+  // محاكاة تأخير API
   await new Promise(resolve => setTimeout(resolve, 800));
   
-  // Find the requested formation
+  // البحث عن التشكيل المطلوب
   const formation = formations.find(f => f.name === formationName) || formations[0];
   
-  // Filter players by position
+  // تصفية اللاعبين حسب المركز
   const goalkeepers = barcelona.players.filter(player => player.position === "GK");
   const defenders = barcelona.players.filter(player => player.position === "DF");
   const midfielders = barcelona.players.filter(player => player.position === "MF");
   const forwards = barcelona.players.filter(player => player.position === "FW");
   
-  // Create a lineup with the best players in each position (simplified logic)
+  // إنشاء تشكيلة بأفضل اللاعبين في كل مركز (منطق مبسط)
   const lineup: LineupData = {
     formation,
     goalkeeper: [goalkeepers[0]],
@@ -29,43 +29,58 @@ export const fetchLineup = async (formationName: string = "4-3-3"): Promise<Line
   return lineup;
 };
 
-// This function simulates fetching data from fotmob or similar service
+// هذه الدالة تمثل جلب البيانات من FotMob
 export const fetchLineupFromUrl = async (url: string, formationName: string = "4-3-3"): Promise<LineupData> => {
   console.log("Fetching lineup from URL:", url);
   
-  // In a real implementation, this would fetch data from the URL
-  // For now, we'll simulate it using our local data
+  // استخراج معرف المباراة من الرابط
+  let matchId = "";
   
-  // Simulate API delay
+  // التحقق مما إذا كان الرابط يحتوي على معرف المباراة
+  if (url.includes("#")) {
+    const parts = url.split("#");
+    if (parts.length > 1) {
+      matchId = parts[1].split(":")[0];
+    }
+  } else if (url.match(/^\d+$/)) {
+    // إذا كان المدخل هو فقط أرقام، فنعتبره معرف المباراة
+    matchId = url;
+  }
+  
+  console.log("تم استخراج معرف المباراة:", matchId);
+  
+  // محاكاة تأخير API
   await new Promise(resolve => setTimeout(resolve, 1200));
   
-  // Find the requested formation
+  // في التطبيق الحقيقي، سنستخدم هنا معرف المباراة للاستعلام عن FotMob API
+  // سنُحاكي ذلك باستخدام تشكيلة مختلفة بناءً على المعرف
+  
+  // البحث عن التشكيل المطلوب
   const formation = formations.find(f => f.name === formationName) || formations[0];
   
-  // Simulating different lineup based on URL parameter
-  // In real implementation, this would parse the actual response from fotmob
-  const isSpecialLineup = url.includes("special");
+  // محاكاة تشكيلة مختلفة بناءً على معرف المباراة
+  const useSpecialLineup = matchId.includes("4737555");
   
-  // Filter players by position
+  // تصفية اللاعبين حسب المركز
   const goalkeepers = barcelona.players.filter(player => player.position === "GK");
   const defenders = barcelona.players.filter(player => player.position === "DF");
   const midfielders = barcelona.players.filter(player => player.position === "MF");
   const forwards = barcelona.players.filter(player => player.position === "FW");
   
-  // Create a lineup with selected players
-  // If URL contains "special", we'll create a different lineup
+  // إنشاء تشكيلة مع اللاعبين المختارين
+  // إذا كان معرف المباراة هو "4737555"، فسننشئ تشكيلة خاصة
   const lineup: LineupData = {
     formation,
-    goalkeeper: [isSpecialLineup ? goalkeepers[1] : goalkeepers[0]],
-    defense: defenders.slice(isSpecialLineup ? 2 : 0, isSpecialLineup ? 2 + formation.lines[0] : formation.lines[0]),
-    midfield: midfielders.slice(isSpecialLineup ? 1 : 0, isSpecialLineup ? 1 + (formation.lines.length > 1 ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) : 0) : (formation.lines.length > 1 ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) : 0)),
-    attack: forwards.slice(isSpecialLineup ? 1 : 0, isSpecialLineup ? 1 + formation.lines[formation.lines.length - 1] : formation.lines[formation.lines.length - 1])
+    goalkeeper: [useSpecialLineup ? goalkeepers[1] : goalkeepers[0]],
+    defense: defenders.slice(useSpecialLineup ? 2 : 0, useSpecialLineup ? 2 + formation.lines[0] : formation.lines[0]),
+    midfield: midfielders.slice(useSpecialLineup ? 1 : 0, useSpecialLineup ? 1 + (formation.lines.length > 1 ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) : 0) : (formation.lines.length > 1 ? formation.lines.reduce((sum, count, index) => index > 0 && index < formation.lines.length - 1 ? sum + count : sum, 0) : 0)),
+    attack: forwards.slice(useSpecialLineup ? 1 : 0, useSpecialLineup ? 1 + formation.lines[formation.lines.length - 1] : formation.lines[formation.lines.length - 1])
   };
   
   return lineup;
 };
 
-// Helper function to create a custom lineup
+// دالة مساعدة لإنشاء تشكيلة مخصصة
 export const createCustomLineup = (
   formationName: string, 
   goalkeeperIds: string[], 
@@ -73,21 +88,21 @@ export const createCustomLineup = (
   midfielderIds: string[], 
   forwardIds: string[]
 ): LineupData => {
-  // Find the requested formation
+  // البحث عن التشكيل المطلوب
   const formation = formations.find(f => f.name === formationName) || formations[0];
   
-  // Helper function to find players by ids
+  // دالة مساعدة للبحث عن اللاعبين بواسطة المعرفات
   const findPlayersByIds = (ids: string[]): Player[] => {
     return ids.map(id => {
       const player = barcelona.players.find(p => p.id === id);
       if (!player) {
-        console.warn(`Player with id ${id} not found`);
+        console.warn(`لم يتم العثور على لاعب بمعرف ${id}`);
       }
       return player;
     }).filter(player => player !== undefined) as Player[];
   };
   
-  // Create lineup with selected players
+  // إنشاء تشكيلة باللاعبين المختارين
   const lineup: LineupData = {
     formation,
     goalkeeper: findPlayersByIds(goalkeeperIds),

@@ -18,18 +18,25 @@ const UrlInput: React.FC<UrlInputProps> = ({ onFetchFromUrl }) => {
     
     if (!url.trim()) {
       toast({
-        title: "URL Required",
-        description: "Please enter a FotMob match URL",
+        title: "مطلوب رابط",
+        description: "يرجى إدخال رابط مباراة FotMob أو معرف المباراة",
         variant: "destructive",
       });
       return;
     }
     
-    // Basic URL validation
+    // التحقق إذا كان المدخل هو معرف مباراة فقط (أرقام فقط)
+    if (url.match(/^\d+$/)) {
+      // هذا معرف مباراة، نرسله مباشرة إلى معالج الرابط
+      onFetchFromUrl(url);
+      return;
+    }
+    
+    // التحقق من صحة الرابط
     if (!url.includes("fotmob.com") && !url.includes("special")) {
       toast({
-        title: "Invalid URL",
-        description: "Please enter a valid FotMob match URL",
+        title: "رابط غير صالح",
+        description: "يرجى إدخال رابط مباراة FotMob صالح",
         variant: "destructive",
       });
       return;
@@ -41,15 +48,16 @@ const UrlInput: React.FC<UrlInputProps> = ({ onFetchFromUrl }) => {
   return (
     <form onSubmit={handleSubmit} className="flex items-center w-full space-x-2 animate-slide-down" style={{ animationDelay: '0.2s' }}>
       <Input
-        type="url"
-        placeholder="Enter FotMob match URL"
+        type="text"
+        placeholder="أدخل رابط مباراة FotMob أو معرف المباراة"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
         className="bg-white bg-opacity-90 backdrop-blur-sm hover:bg-opacity-100 transition-all duration-200"
+        dir="rtl"
       />
       <Button type="submit" className="bg-barcelona-primary hover:bg-barcelona-primary/90 transition-all duration-200">
-        <Search className="w-4 h-4 mr-2" />
-        Fetch
+        <Search className="w-4 h-4 ml-2" />
+        جلب
       </Button>
     </form>
   );
